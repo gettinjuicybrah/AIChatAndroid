@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/navigation_home">
+
+    <fragment
+        android:id="@+id/navigation_home"
+        android:name="com.example.easyaichat.ui.screen.ChatFragment"
+        android:label="Chat Home" >
+        <argument
+            android:name="chatId"
+            app:argType="java.util.UUID"
+            app:nullable="true"
+            android:defaultValue="@null"/>
+        <action
+            android:id="@+id/action_navigation_to_created_chat"
+            app:destination="@id/navigation_home" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_chat_list"
+        android:name="com.example.easyaichat.ui.screen.ChatListFragment"
+        android:label="Chat List" >
+        <action
+            android:id="@+id/action_navigation_chat_list_to_navigation_home"
+            app:destination="@id/navigation_home" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_settings"
+        android:name="com.example.easyaichat.ui.screen.SettingsFragment"
+        android:label="Settings" >
+        <action
+            android:id="@+id/action_navigation_settings_to_navigation_home"
+            app:destination="@id/navigation_home" />
+    </fragment>
+
+</navigation>

@@ -29,6 +29,7 @@ import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+
 //Default chat is null, and this can be changed if we get here by clicking on an existing chat
 //within the chatlist fragment, which will just pass that corresponding ChatEntity as a param.
 /*
@@ -46,11 +47,9 @@ class ChatViewModel(
     private val chatRepository: ChatRepository by inject()
     private val llmApiService: LLM_APIService by inject()
 
-    private val _apiKeyEntities = MutableStateFlow<List<APIKeyEntity>>(emptyList())
-    val apiKeyEntities: StateFlow<List<APIKeyEntity>> = _apiKeyEntities.asStateFlow()
-
     private val _providerToModelMap = MutableStateFlow<Map<String, List<ModelEntity>>>(emptyMap())
-    val providerToModelMap: StateFlow<Map<String, List<ModelEntity>>> = _providerToModelMap.asStateFlow()
+    val providerToModelMap: StateFlow<Map<String, List<ModelEntity>>> =
+        _providerToModelMap.asStateFlow()
 
     private val _messages: MutableStateFlow<List<ChatMessage>> = MutableStateFlow(emptyList())
     val messages: StateFlow<List<ChatMessage>>
@@ -58,22 +57,23 @@ class ChatViewModel(
 
     private val _editableTitle = MutableStateFlow<String>("")
     val editableTitle: StateFlow<String> = _editableTitle.asStateFlow()
-data class ChatUiState(
-    val chatEntity: ChatEntity? = null,
-    val selectedApiKeyEntity: APIKeyEntity? = null,
-    val selectedModelEntity: ModelEntity? = null,
-    val availableProviders: List<String> = emptyList(),
-    val availableModels: List<ModelEntity> = emptyList(),
-    val initialProviderSelection: String? = null,    // Added for initial selection
-    val initialModelSelection: String? = null,       // Added for initial selection
-    val isLoading: Boolean = false,
-    val isUpdatingTitle: Boolean = false,
-    val error: String? = null
-)
+
+    data class ChatUiState(
+        val chatEntity: ChatEntity? = null,
+        val selectedApiKeyEntity: APIKeyEntity? = null,
+        val selectedModelEntity: ModelEntity? = null,
+        val availableProviders: List<String> = emptyList(),
+        val availableModels: List<ModelEntity> = emptyList(),
+        val initialProviderSelection: String? = null,
+        val initialModelSelection: String? = null,
+        val isLoading: Boolean = false,
+        val isUpdatingTitle: Boolean = false,
+        val error: String? = null,
+        val apiKeyEntities: List<APIKeyEntity> = emptyList()
+    )
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
-
     private val _selectedImages = MutableStateFlow<List<String>>(emptyList())
     val selectedImages: StateFlow<List<String>> = _selectedImages.asStateFlow()
 
@@ -90,6 +90,7 @@ data class ChatUiState(
             }
         }
     }
+
     /**
      * Updates the temporary editable title based on user input.
      */
@@ -114,22 +115,10 @@ data class ChatUiState(
         }
     }
 
-    fun updateChatTitle(newTitle: String) {
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isUpdatingTitle = true) }
-            _uiState.value.chatEntity?.let { currentChat ->
-                val updatedChat = currentChat.copy(title = newTitle)
-                chatRepository.updateChat(updatedChat)
-                _uiState.update { it.copy(chatEntity = updatedChat, isUpdatingTitle = false) }
-            }
-        }
-    }
     private suspend fun initializeChat() {
         try {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Combine API Keys and Models
             combine(
                 chatRepository.getAllAPIKeyEntities(),
                 chatRepository.getAllModelEntities()
@@ -160,19 +149,20 @@ data class ChatUiState(
         }
     }
 
-    private fun initNewChat(){
-        viewModelScope.launch{
-            chatRepository.getAllAPIKeyEntities().collect{ list ->
-                _apiKeyEntities.value = list
+    private fun initNewChat() {
+        viewModelScope.launch {
+            chatRepository.getAllAPIKeyEntities().collect { list ->
                 _uiState.update {
                     it.copy(
                         selectedApiKeyEntity = determineAPIKey(),
                         selectedModelEntity = determineModel(),
+                        apiKeyEntities = list
                     )
                 }
             }
         }
     }
+
     fun clearSelectedImages() {
         _selectedImages.value = emptyList()
     }
@@ -198,20 +188,11 @@ data class ChatUiState(
         }
     }
 
-    fun updateSelectedModel(modelEntity: ModelEntity) {
-        viewModelScope.launch {
-            _uiState.update { state ->
-                state.copy(
-                    selectedModelEntity = modelEntity,
-                    chatEntity = state.chatEntity?.copy(
-                        model = modelEntity.model
-                    )
-                )
-            }
-        }
-    }
     // Takes in as params to ensure it is working on the latest data.
-    private suspend fun providerToModelMapGen(apiKeys: List<APIKeyEntity>, models: List<ModelEntity>) {
+    private suspend fun providerToModelMapGen(
+        apiKeys: List<APIKeyEntity>,
+        models: List<ModelEntity>
+    ) {
         val providerToModelMap = apiKeys
             .map { it.provider }
             .distinct()
@@ -224,16 +205,18 @@ data class ChatUiState(
         providerToModelMap.forEach { (provider, models) ->
             Log.d("ChatViewModel", "Provider: $provider, Models: ${models.map { it.model }}")
         }
-}
-    private fun initPersistedChat(){
-        viewModelScope.launch{
-            chatRepository.getAllAPIKeyEntities().collect{ list ->
-                _apiKeyEntities.value = list
+    }
+
+    private fun initPersistedChat() {
+        viewModelScope.launch {
+            chatRepository.getAllAPIKeyEntities().collect { list ->
+
                 _uiState.update {
                     it.copy(
                         chatEntity = chatRepository.getChat(chatId),
                         selectedApiKeyEntity = determineAPIKey(),
-                        selectedModelEntity = determineModel()
+                        selectedModelEntity = determineModel(),
+                        apiKeyEntities = list
                     )
                 }
                 loadMessages(chatId!!)
@@ -246,19 +229,32 @@ data class ChatUiState(
     and may not exist
      */
     //suspend so can be called within other coroutines
-suspend fun determineAPIKey(): APIKeyEntity? {
-    return if (chatId == null) {
-        chatRepository.getDefaultAPIKey()?.let { chatRepository.getAPIKeyEntity(it.keyId) }
-    } else {
-        chatRepository.getChat(chatId)?.keyId?.let { chatRepository.getAPIKeyEntity(it) }
+    suspend fun determineAPIKey(): APIKeyEntity? {
+        return if (chatId == null) {
+            chatRepository.getDefaultAPIKey()?.let { chatRepository.getAPIKeyEntity(it.keyId) }
+        } else {
+            chatRepository.getChat(chatId)?.keyId?.let { chatRepository.getAPIKeyEntity(it) }
+        }
     }
-}
-// suspend so can be called within other coroutines
+
+    // suspend so can be called within other coroutines
     suspend fun determineModel(): ModelEntity? {
         return if (chatId == null) {
             uiState.value.selectedApiKeyEntity?.defaultModel?.let { chatRepository.getModelByName(it) }
         } else {
             uiState.value.chatEntity?.model?.let { chatRepository.getModelByName(it) }
+        }
+    }
+
+    fun setApiKey(apiKeyEntity: APIKeyEntity) {
+        _uiState.update {
+            it.copy(selectedApiKeyEntity = apiKeyEntity)
+        }
+    }
+
+    fun setModel(modelEntity: ModelEntity) {
+        _uiState.update {
+            it.copy(selectedModelEntity = modelEntity)
         }
     }
 
@@ -304,7 +300,8 @@ suspend fun determineAPIKey(): APIKeyEntity? {
                             subIndex = 0
                         )
                         //So it can be passed into LLM_APIService, keeping the segregation logic solely here.
-                        val messageList: List<ChatMessage> = listOf(ChatMessage(userMessage, images))
+                        val messageList: List<ChatMessage> =
+                            listOf(ChatMessage(userMessage, images))
                         ChatMessage(userMessage, images)
                         // Handle new chat creation
                         val aiResponse = llmApiService.sendPrompt(
@@ -322,7 +319,7 @@ suspend fun determineAPIKey(): APIKeyEntity? {
                         )
 
                         // Create and insert user message
-                         userMessage = MessageEntity(
+                        userMessage = MessageEntity(
                             id = UUID.randomUUID(),
                             chatId = newChatId,
                             content = content,
@@ -367,7 +364,8 @@ suspend fun determineAPIKey(): APIKeyEntity? {
                     } else {
                         // Handle existing chat
                         val currentMessages = messages.value
-                        val nextUserIndex = (currentMessages.maxOfOrNull { it.messageEntity.index } ?: -1) + 1
+                        val nextUserIndex =
+                            (currentMessages.maxOfOrNull { it.messageEntity.index } ?: -1) + 1
 
                         // Create and insert user message
                         val userMessage = MessageEntity(
@@ -421,7 +419,7 @@ suspend fun determineAPIKey(): APIKeyEntity? {
                 // Handle exceptions, possibly update UI state with error
                 _uiState.update { it.copy(error = e.message) }
                 Log.e("ChatViewModel", "Error sending message: ${e.message}", e)
-            }finally {
+            } finally {
                 _uiState.update { it.copy(isLoading = false) } // End loading
             }
         }
@@ -432,20 +430,6 @@ suspend fun determineAPIKey(): APIKeyEntity? {
         _selectedImages.update { it + uri }
     }
 
-    fun removeImage(uri: String) {
-        _selectedImages.update { it - uri }
-    }
-
-    //update chat based on change of state to repository.
-    fun updateChat(onUpdate: (ChatEntity) -> ChatEntity) {
-        viewModelScope.launch {
-            _uiState.value.chatEntity?.let { chat ->
-                val updatedChat = onUpdate(chat)
-                chatRepository.updateChat(updatedChat)
-                _uiState.update { it.copy(chatEntity = updatedChat) }
-            }
-        }
-    }
 
     /**
      * Clears any existing error messages.
@@ -453,6 +437,7 @@ suspend fun determineAPIKey(): APIKeyEntity? {
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
     override fun onCleared() {
         super.onCleared()
         // Save any pending changes when ViewModel is cleared

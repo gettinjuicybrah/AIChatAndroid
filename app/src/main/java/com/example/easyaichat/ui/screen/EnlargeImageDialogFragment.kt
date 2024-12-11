@@ -38,7 +38,6 @@ class EnlargeImageDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Retrieve image URI from arguments
         val imageUri = arguments?.getString(ARG_IMAGE_URI)
         if (imageUri != null) {
             binding.enlargedImageView.load(imageUri) {
@@ -47,12 +46,10 @@ class EnlargeImageDialogFragment : DialogFragment() {
             }
         }
 
-        // Set up the close button
         binding.closeButton.setOnClickListener {
             dismiss()
         }
 
-        // Optional: Dismiss when clicking outside the image
         binding.root.setOnClickListener {
             dismiss()
         }
@@ -60,9 +57,7 @@ class EnlargeImageDialogFragment : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        // Optional: Make dialog full screen
         dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        //dialog?.window?.requestFeature(Window.FEATURE_NO_TITLE)
     }
 
     override fun onDestroyView() {

@@ -54,6 +54,7 @@ val platformModule = module {
     }
     single { androidContext().contentResolver }
     singleOf(::LLM_APIService)
-    single{OpenAI_API(get(), androidContext())}
+    single{OpenAI_API(get())}
 
 }
+//

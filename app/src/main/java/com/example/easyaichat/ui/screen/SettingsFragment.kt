@@ -32,7 +32,6 @@ class SettingsFragment : Fragment(), KoinComponent {
     The hardcoding horseshit.
      */
     private val providers = listOf("OpenAI")
-    private val models = listOf("gpt-4o, o1-mini")
     private var modelsByProvider:List<String> = emptyList()
 
     private var _binding: FragmentSettingsBinding? = null
@@ -226,7 +225,7 @@ class SettingsFragment : Fragment(), KoinComponent {
                                 defaultModel = newModel
                             )
                         )
-                        //observeViewModel()
+
                     }
                 }
                 .setNegativeButton("Cancel", null)

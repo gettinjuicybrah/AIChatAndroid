@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class DBFactory(private val context: Context) {
     companion object {
-        private const val DB_NAME = "chat_database.db" // Define your database name
+        private const val DB_NAME = "chat_database.db"
     }
 
     fun createDatabase(): ChatDatabase {
@@ -20,6 +20,6 @@ class DBFactory(private val context: Context) {
             ChatDatabase::class.java,
             DB_NAME
         )
-            .fallbackToDestructiveMigration() // Optional: handles schema changes by recreating tables
+            .fallbackToDestructiveMigration()
             .build()
     }}

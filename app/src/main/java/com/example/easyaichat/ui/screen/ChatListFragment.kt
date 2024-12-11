@@ -33,8 +33,6 @@ class ChatListFragment: Fragment() {
         }
     private val chatListViewModel: ChatListViewModel by viewModel()
 
-    private val navController by lazy { findNavController() }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

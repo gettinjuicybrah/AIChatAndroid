@@ -97,13 +97,6 @@ class ChatAdapter(
 
     override fun getItemCount() = messages.size
 
-    /*
-    fun addMessage(message: ChatMessage) {
-        messages.add(message)
-        notifyItemInserted(messages.size - 1)
-    }
-
-     */
 }
 
 class UserMessageViewHolder(val binding: ItemMessageUserBinding, val imageClickListener: ImageClickListener) : RecyclerView.ViewHolder(binding.root) {

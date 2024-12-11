@@ -31,16 +31,3 @@ class OpenAI_KtorHttpClient(
         }
     }
 }
-/*
-val factory = HttpClientFactory(AndroidEngine())
-
-// Get client for knowledge management
-val kmClient = factory.getClient(ApiRoutes.KnowledgeManagement)
-
-// Get client for provider 1
-val provider1Client = factory.getClient(ApiRoutes.Provider1)
-
-// Make requests
-kmClient.get("/some-endpoint")
-provider1Client.get("/different-endpoint")
- */
